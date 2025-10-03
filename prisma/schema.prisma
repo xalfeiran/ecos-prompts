@@ -1,0 +1,52 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Prompt {
+  id         String         @id @default(uuid())
+  text       String
+  language   String
+  source     String         @default("manual")
+  createdAt  DateTime       @default(now())
+  categories PromptCategory[]
+  events     Event[]        @relation("PromptToEvents") // ← añade esta línea
+  keywords   String[]
+}
+
+
+model Category {
+  id        String     @id @default(uuid())
+  name      String     @unique
+  parentId  String?    
+  parent    Category?  @relation("CategoryToSub", fields: [parentId], references: [id])
+  children  Category[] @relation("CategoryToSub")
+  prompts   PromptCategory[]
+}
+
+
+model PromptCategory {
+  id         String   @id @default(uuid())
+  promptId   String
+  categoryId String
+
+  prompt     Prompt   @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([promptId, categoryId]) // evita duplicados
+}
+
+model Event {
+  id        String   @id @default(uuid())
+  type      String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  promptId  String
+  prompt    Prompt   @relation("PromptToEvents", fields: [promptId], references: [id])
+}
+
