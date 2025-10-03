@@ -30,6 +30,36 @@ function parseArgs(argv) {
   return args
 }
 
+function buildMongoUri(args) {
+  const explicitUri = args['mongodb-uri'] || args.mongo || process.env.MONGODB_URI
+  const authSource = args['mongo-authSource'] || args.authSource
+
+  if (explicitUri) {
+    // Append authSource if provided and not already present
+    if (authSource) {
+      const hasQuery = explicitUri.includes('?')
+      const sep = hasQuery ? '&' : '?'
+      if (!/([?&])authSource=/.test(explicitUri)) {
+        return `${explicitUri}${sep}authSource=${encodeURIComponent(authSource)}`
+      }
+    }
+    return explicitUri
+  }
+
+  const host = args['mongo-host'] || '127.0.0.1'
+  const port = String(args['mongo-port'] || 27017)
+  const db   = args['mongo-db'] || 'memoryprompts'
+  const user = args['mongo-user']
+  const pass = args['mongo-pass']
+
+  const creds = (user && pass)
+    ? `${encodeURIComponent(user)}:${encodeURIComponent(pass)}@`
+    : ''
+
+  const query = authSource ? `?authSource=${encodeURIComponent(authSource)}` : ''
+  return `mongodb://${creds}${host}:${port}/${db}${query}`
+}
+
 async function extractKeywords(text) {
   const instruction = `
 Extrae 3 a 5 palabras clave relevantes del siguiente enunciado. Las palabras clave deben ser sustantivos o conceptos importantes. Devuélvelas como un arreglo JSON.
@@ -105,7 +135,7 @@ async function main() {
     .filter(Boolean)
   const dryRun = Boolean(args['dry-run'] || args.dry)
 
-  const mongoUri = args['mongodb-uri'] || args.mongo || process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/memoryprompts'
+  const mongoUri = buildMongoUri(args) || 'mongodb://127.0.0.1:27017/memoryprompts'
 
   if (!process.env.OPENAI_API_KEY) {
     console.error('❌ Falta OPENAI_API_KEY en el entorno (.env)')
