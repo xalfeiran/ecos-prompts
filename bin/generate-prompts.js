@@ -103,6 +103,7 @@ async function main() {
     .split(',')
     .map(s => s.trim())
     .filter(Boolean)
+  const dryRun = Boolean(args['dry-run'] || args.dry)
 
   const mongoUri = args['mongodb-uri'] || args.mongo || process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/memoryprompts'
 
@@ -134,6 +135,18 @@ async function main() {
       model: 'gpt-4',
       createdAt: new Date()
     })
+  }
+
+  if (dryRun) {
+    console.log('🚫 Dry run activado: no se guardarán datos en MongoDB.')
+    console.log(JSON.stringify({
+      category,
+      language,
+      amount,
+      subcategories: subs,
+      prompts: docs
+    }, null, 2))
+    return
   }
 
   console.log(`💾 Conectando a MongoDB: ${mongoUri}`)
