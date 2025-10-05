@@ -8,7 +8,7 @@
     "start": "node index.js",
     "seed": "node prisma/seed.js",
     "generate:prompts": "node bin/generate-prompts.js",
-    "generate:batch": "zsh bin/generate-batch.sh"
+    "generate:batch": "bash bin/generate-batch.sh"
   },
   "keywords": [],
   "author": "",

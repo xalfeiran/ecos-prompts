@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env bash
 
 set -euo pipefail
 
@@ -55,8 +55,8 @@ if [[ -n "$LOG_DIR" ]]; then
   mkdir -p "$LOG_DIR"
 fi
 
-IFS=',' read -A CAT_ARR <<< "$CATEGORIES"
-IFS=',' read -A LANG_ARR <<< "$LANGUAGES"
+IFS=',' read -r -a CAT_ARR <<< "$CATEGORIES"
+IFS=',' read -r -a LANG_ARR <<< "$LANGUAGES"
 
 for CAT in ${CAT_ARR[@]}; do
   for L in ${LANG_ARR[@]}; do
@@ -73,7 +73,7 @@ for CAT in ${CAT_ARR[@]}; do
 
     # Ejecutar sin abortar todo el batch si falla
     set +e
-    OUTPUT="$(${=CMD} 2>&1)"
+    OUTPUT="$(${CMD[@]} 2>&1)"
     STATUS=$?
     set -e
 
