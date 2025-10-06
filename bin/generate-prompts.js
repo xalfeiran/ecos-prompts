@@ -31,21 +31,31 @@ function parseArgs(argv) {
 }
 
 function buildMongoUri(args) {
-  const explicitUri = args['mongodb-uri'] || args.mongo || process.env.MONGODB_URI
+  const explicitUri = args['mongodb-uri'] || args.mongo || args['atlas-uri'] || process.env.MONGODB_URI
   const authSource = args['mongo-authSource'] || args.authSource
+  const extraParams = args['mongo-params'] // e.g. retryWrites=true&w=majority
 
   if (explicitUri) {
-    // Append authSource if provided and not already present
-    if (authSource) {
-      const hasQuery = explicitUri.includes('?')
+    let uri = explicitUri
+    // If mongodb+srv, don't auto-append authSource (Atlas typically doesn't need it)
+    const isSrv = /^mongodb\+srv:/.test(uri)
+    if (!isSrv && authSource) {
+      const hasQuery = uri.includes('?')
       const sep = hasQuery ? '&' : '?'
-      if (!/([?&])authSource=/.test(explicitUri)) {
-        return `${explicitUri}${sep}authSource=${encodeURIComponent(authSource)}`
+      if (!/([?&])authSource=/.test(uri)) {
+        uri = `${uri}${sep}authSource=${encodeURIComponent(authSource)}`
       }
     }
-    return explicitUri
+    if (extraParams) {
+      const hasQuery = uri.includes('?')
+      const sep = hasQuery ? '&' : '?'
+      uri = `${uri}${sep}${extraParams}`
+    }
+    return uri
   }
 
+  // Build SRV URI for Atlas when cluster is provided
+  const atlasCluster = args['atlas-cluster'] // e.g., cluster0.xxxxxx.mongodb.net
   const host = args['mongo-host'] || '127.0.0.1'
   const port = String(args['mongo-port'] || 27017)
   const db   = args['mongo-db'] || 'memoryprompts'
@@ -56,8 +66,33 @@ function buildMongoUri(args) {
     ? `${encodeURIComponent(user)}:${encodeURIComponent(pass)}@`
     : ''
 
-  const query = authSource ? `?authSource=${encodeURIComponent(authSource)}` : ''
+  if (atlasCluster) {
+    const base = `mongodb+srv://${creds}${atlasCluster}/${db}`
+    const defaults = 'retryWrites=true&w=majority'
+    const qsParts = []
+    if (extraParams) qsParts.push(extraParams)
+    // authSource typically not used with SRV; skip unless explicitly provided in extraParams
+    const query = qsParts.length > 0 ? `?${qsParts.join('&')}` : `?${defaults}`
+    return `${base}${query}`
+  }
+
+  const params = []
+  if (authSource) params.push(`authSource=${encodeURIComponent(authSource)}`)
+  if (extraParams) params.push(extraParams)
+  const query = params.length > 0 ? `?${params.join('&')}` : ''
   return `mongodb://${creds}${host}:${port}/${db}${query}`
+}
+
+function sanitizeUriForLog(uri) {
+  try {
+    const u = new URL(uri)
+    if (u.password) {
+      u.password = '***'
+    }
+    return `${u.protocol}//${u.username ? `${u.username}${u.password ? ':' + u.password : ''}@` : ''}${u.host}${u.pathname}${u.search}`
+  } catch {
+    return uri.replace(/(mongodb(?:\+srv)?:\/\/[^:]+):[^@]+@/i, '$1:***@')
+  }
 }
 
 async function extractKeywords(text) {
@@ -180,7 +215,7 @@ async function main() {
     return
   }
 
-  console.log(`💾 Conectando a MongoDB: ${mongoUri}`)
+  console.log(`💾 Conectando a MongoDB: ${sanitizeUriForLog(mongoUri)}`)
   const client = new MongoClient(mongoUri)
 
   try {
@@ -219,5 +254,6 @@ main().catch(err => {
   console.error('❌ Error:', err?.message || err)
   process.exit(1)
 })
+
 
 

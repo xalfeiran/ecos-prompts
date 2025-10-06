@@ -15,6 +15,7 @@ set -euo pipefail
 #   --sleep-s: segundos (puede ser decimal) entre llamadas (ej: 0.5)
 #   --log-dir: directorio donde guardar logs por categoría/idioma
 #   --mongodb-uri / --mongo-user --mongo-pass --mongo-authSource --mongo-host --mongo-port --mongo-db
+#   --atlas-uri / --atlas-cluster / --mongo-params
 
 AMOUNT=5
 CATEGORIES=""
@@ -40,7 +41,7 @@ while [[ $# -gt 0 ]]; do
       SLEEP_S="$2"; shift 2;;
     --log-dir)
       LOG_DIR="$2"; shift 2;;
-    --mongodb-uri|--mongo-user|--mongo-pass|--mongo-authSource|--mongo-host|--mongo-port|--mongo-db)
+    --mongodb-uri|--mongo-user|--mongo-pass|--mongo-authSource|--mongo-host|--mongo-port|--mongo-db|--atlas-uri|--atlas-cluster|--mongo-params)
       EXTRA_ARGS+=("$1" "$2"); shift 2;;
     *)
       echo "Argumento desconocido: $1"; exit 1;;
