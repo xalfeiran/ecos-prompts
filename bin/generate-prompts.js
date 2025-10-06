@@ -200,6 +200,11 @@ async function main() {
     const result = await collection.insertMany(docs, { ordered: false })
 
     console.log(`✅ Insertados ${Object.keys(result.insertedIds).length} documentos en la colección 'prompts'`)
+    const inserted = Object.entries(result.insertedIds).map(([idx, id]) => ({
+      _id: id && typeof id.toString === 'function' ? id.toString() : String(id),
+      ...docs[Number(idx)]
+    }))
+    console.log(JSON.stringify({ insertedCount: inserted.length, prompts: inserted }, null, 2))
   } catch (err) {
     console.error('❌ Error guardando en MongoDB:', err?.message || err)
     process.exitCode = 1
