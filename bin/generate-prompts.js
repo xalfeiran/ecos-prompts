@@ -134,6 +134,7 @@ async function main() {
     .map(s => s.trim())
     .filter(Boolean)
   const dryRun = Boolean(args['dry-run'] || args.dry)
+  const collectionName = args['collection'] || 'prompts'
 
   const mongoUri = buildMongoUri(args) || 'mongodb://127.0.0.1:27017/memoryprompts'
 
@@ -196,7 +197,8 @@ async function main() {
     })()
 
     const db = client.db(dbNameFromUri)
-    const collection = db.collection('prompts')
+    console.log(`📚 Base de datos: ${db.databaseName} | 📄 Colección: ${collectionName}`)
+    const collection = db.collection(collectionName)
     const result = await collection.insertMany(docs, { ordered: false })
 
     console.log(`✅ Insertados ${Object.keys(result.insertedIds).length} documentos en la colección 'prompts'`)
